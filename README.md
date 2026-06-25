@@ -1,12 +1,23 @@
 # NeuroLearn AI
 
-KI-gestützte Lern-App: Texte eingeben, Zusammenfassung + Quiz erhalten.
+KI-gestützte Lern-App: Texte hochladen, Zusammenfassung + Quiz erhalten, Fortschritt tracken.
 
 ## Tech Stack
 
-- **Frontend:** React (Vite)
-- **Backend:** FastAPI (Python)
+- **Frontend:** React (Vite) + TailwindCSS + React Router
+- **Backend:** FastAPI (Python) + SQLAlchemy + SQLite
+- **Auth:** JWT Authentication
 - **KI:** Ollama (lokal, qwen3/llama3)
+
+## Features
+
+- User Accounts (Register/Login)
+- Dashboard mit Fortschrittsübersicht und XP-System
+- Lernmaterial Upload (Text + PDF)
+- KI-Analyse (Zusammenfassung + 10 Quizfragen)
+- Bibliothek mit gespeicherten Inhalten
+- Quiz-System mit Score Tracking
+- Profil mit Lernstatistiken
 
 ## Voraussetzungen
 
@@ -43,8 +54,22 @@ ollama serve
 
 Dann im Browser: http://localhost:5173
 
-## API
+## API Endpoints
 
-- `POST /analyze` — Text analysieren (JSON: `{"text": "..."}`)
-- `POST /analyze-pdf` — PDF hochladen und analysieren (multipart/form-data)
-- `GET /health` — Health Check
+### Auth
+- `POST /auth/register` — Neuen Account erstellen
+- `POST /auth/login` — Einloggen (JWT Token)
+
+### User
+- `GET /user/profile` — Profil + Statistiken
+- `GET /dashboard` — Dashboard-Daten
+
+### Content
+- `POST /analyze` — Text analysieren
+- `POST /analyze-pdf` — PDF analysieren
+- `GET /library` — Alle Uploads
+- `GET /library/{id}` — Upload-Details
+
+### Quiz
+- `GET /quiz/{upload_id}` — Quiz laden
+- `POST /quiz/submit` — Quiz-Antworten abgeben
