@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { CheckCircle, XCircle, Trophy, ArrowLeft } from "lucide-react";
+import { CheckCircle, XCircle, Trophy, ArrowLeft, Eye } from "lucide-react";
 import { api } from "../lib/api";
 
 export default function Quiz() {
   const { id } = useParams();
   const [quiz, setQuiz] = useState(null);
-  const [answers, setAnswers] = useState([]);
   const [currentQ, setCurrentQ] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [marks, setMarks] = useState([]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -15,14 +16,28 @@ export default function Quiz() {
   useEffect(() => {
     api.getQuiz(id).then((data) => {
       setQuiz(data);
-      setAnswers(new Array(data.questions.length).fill(""));
+      setMarks(new Array(data.questions.length).fill(null));
     }).catch(console.error).finally(() => setLoading(false));
   }, [id]);
+
+  const markAnswer = (correct) => {
+    const newMarks = [...marks];
+    newMarks[currentQ] = correct;
+    setMarks(newMarks);
+    setShowAnswer(false);
+
+    if (currentQ < quiz.questions.length - 1) {
+      setCurrentQ(currentQ + 1);
+    }
+  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const res = await api.submitQuiz({ upload_id: parseInt(id), answers });
+      const correctIndices = marks
+        .map((m, i) => (m === true ? i : null))
+        .filter((i) => i !== null);
+      const res = await api.submitQuiz({ upload_id: parseInt(id), correct_indices: correctIndices });
       setResult(res);
     } catch (err) {
       console.error(err);
@@ -70,12 +85,7 @@ export default function Quiz() {
                 )}
                 <div>
                   <p className="text-sm font-medium text-slate-200">{r.frage}</p>
-                  {!r.is_correct && (
-                    <p className="text-xs text-slate-400 mt-1">
-                      Deine Antwort: <span className="text-red-300">{r.user_answer || "(leer)"}</span>
-                    </p>
-                  )}
-                  <p className="text-xs text-emerald-300 mt-1">Richtig: {r.correct_answer}</p>
+                  <p className="text-xs text-emerald-300 mt-1">Antwort: {r.correct_answer}</p>
                 </div>
               </div>
             </div>
@@ -87,7 +97,7 @@ export default function Quiz() {
             Zurück zum Material
           </Link>
           <button
-            onClick={() => { setResult(null); setCurrentQ(0); setAnswers(new Array(quiz.questions.length).fill("")); }}
+            onClick={() => { setResult(null); setCurrentQ(0); setShowAnswer(false); setMarks(new Array(quiz.questions.length).fill(null)); }}
             className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium transition"
           >
             Nochmal versuchen
@@ -99,6 +109,7 @@ export default function Quiz() {
 
   const question = quiz.questions[currentQ];
   const progress = ((currentQ) / quiz.questions.length) * 100;
+  const allMarked = marks.every((m) => m !== null);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -118,36 +129,60 @@ export default function Quiz() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
         <p className="text-lg text-white font-medium mb-6">{question.frage}</p>
-        <textarea
-          value={answers[currentQ]}
-          onChange={(e) => {
-            const newAnswers = [...answers];
-            newAnswers[currentQ] = e.target.value;
-            setAnswers(newAnswers);
-          }}
-          rows={3}
-          className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition resize-none"
-          placeholder="Deine Antwort..."
-        />
+
+        {!showAnswer ? (
+          <button
+            onClick={() => setShowAnswer(true)}
+            className="w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-medium text-slate-300 transition flex items-center justify-center gap-2"
+          >
+            <Eye size={18} />
+            Antwort anzeigen
+          </button>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-800 rounded-xl border border-indigo-500/30">
+              <p className="text-sm text-slate-400 mb-1">Richtige Antwort:</p>
+              <p className="text-white font-medium">{question.antwort}</p>
+            </div>
+            <p className="text-sm text-slate-400 text-center">Wusstest du die Antwort?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => markAnswer(false)}
+                className="flex-1 py-3 bg-red-950/50 hover:bg-red-900/50 border border-red-800 rounded-xl font-medium text-red-300 transition flex items-center justify-center gap-2"
+              >
+                <XCircle size={18} />
+                Nicht gewusst
+              </button>
+              <button
+                onClick={() => markAnswer(true)}
+                className="flex-1 py-3 bg-emerald-950/50 hover:bg-emerald-900/50 border border-emerald-800 rounded-xl font-medium text-emerald-300 transition flex items-center justify-center gap-2"
+              >
+                <CheckCircle size={18} />
+                Gewusst!
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-3">
         {currentQ > 0 && (
           <button
-            onClick={() => setCurrentQ(currentQ - 1)}
+            onClick={() => { setCurrentQ(currentQ - 1); setShowAnswer(false); }}
             className="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-medium text-slate-300 transition"
           >
             Zurück
           </button>
         )}
-        {currentQ < quiz.questions.length - 1 ? (
+        {marks[currentQ] !== null && currentQ < quiz.questions.length - 1 && (
           <button
-            onClick={() => setCurrentQ(currentQ + 1)}
+            onClick={() => { setCurrentQ(currentQ + 1); setShowAnswer(false); }}
             className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium transition"
           >
             Weiter
           </button>
-        ) : (
+        )}
+        {allMarked && (
           <button
             onClick={handleSubmit}
             disabled={submitting}

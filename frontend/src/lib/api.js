@@ -48,7 +48,7 @@ async function request(path, options = {}) {
 
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
-  if (res.status === 401) {
+  if (res.status === 401 && !path.startsWith("/auth/")) {
     logout();
     window.location.href = "/login";
     throw new Error("Session abgelaufen");

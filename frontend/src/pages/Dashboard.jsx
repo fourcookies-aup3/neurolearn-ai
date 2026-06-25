@@ -25,14 +25,14 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { icon: Brain, label: "XP", value: data.xp, color: "indigo" },
-          { icon: Upload, label: "Uploads", value: data.stats.uploads_count, color: "purple" },
-          { icon: Trophy, label: "Quizze", value: data.stats.quizzes_taken, color: "emerald" },
-          { icon: Flame, label: "Durchschnitt", value: `${data.stats.avg_score}%`, color: "amber" },
-        ].map(({ icon: Icon, label, value, color }) => (
+          { icon: Brain, label: "XP", value: data.xp, bg: "bg-indigo-600/10", text: "text-indigo-400" },
+          { icon: Upload, label: "Uploads", value: data.stats.uploads_count, bg: "bg-purple-600/10", text: "text-purple-400" },
+          { icon: Trophy, label: "Quizze", value: data.stats.quizzes_taken, bg: "bg-emerald-600/10", text: "text-emerald-400" },
+          { icon: Flame, label: "Durchschnitt", value: `${data.stats.avg_score}%`, bg: "bg-amber-600/10", text: "text-amber-400" },
+        ].map(({ icon: Icon, label, value, bg, text }) => (
           <div key={label} className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <div className={`w-10 h-10 bg-${color}-600/10 rounded-xl flex items-center justify-center mb-3`}>
-              <Icon size={20} className={`text-${color}-400`} />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${bg}`}>
+              <Icon size={20} className={text} />
             </div>
             <p className="text-2xl font-bold text-white">{value}</p>
             <p className="text-sm text-slate-400">{label}</p>

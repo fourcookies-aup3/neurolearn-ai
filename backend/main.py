@@ -90,7 +90,7 @@ class AnalyzeResponse(BaseModel):
 
 class QuizSubmitRequest(BaseModel):
     upload_id: int
-    answers: list[str]
+    correct_indices: list[int]  # indices of questions the user self-assessed as correct
 
 
 # ==================== HELPERS ====================
@@ -195,7 +195,15 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     if not user or not verify_password(req.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Ungültige Anmeldedaten.")
 
-    add_activity(db, user, "login", "Angemeldet", xp=1)
+    # Only award XP for first login of the day
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    login_today = (
+        db.query(Activity)
+        .filter(Activity.user_id == user.id, Activity.action == "login", Activity.created_at >= today_start)
+        .first()
+    )
+    xp = 1 if not login_today else 0
+    add_activity(db, user, "login", "Angemeldet", xp=xp)
 
     token = create_access_token({"sub": user.id})
     return TokenResponse(
@@ -311,7 +319,7 @@ async def analyze_pdf(
         text = text[:50000]
 
     result = await call_ollama(text)
-    title = file.filename.replace(".pdf", "")
+    title = file.filename[:file.filename.lower().rfind(".pdf")] or file.filename
     quiz_list = result.get("quiz", [])
 
     upload = Upload(
@@ -412,7 +420,7 @@ def get_quiz(upload_id: int, user: User = Depends(get_current_user), db: Session
     return {
         "upload_id": upload.id,
         "title": upload.title,
-        "questions": [{"id": i, "frage": q["frage"]} for i, q in enumerate(quiz_data)],
+        "questions": [{"id": i, "frage": q["frage"], "antwort": q["antwort"]} for i, q in enumerate(quiz_data)],
     }
 
 
@@ -424,20 +432,14 @@ def submit_quiz(req: QuizSubmitRequest, user: User = Depends(get_current_user), 
 
     quiz_data = json.loads(upload.quiz_data)
     total = len(quiz_data)
-    score = 0
+    score = len(req.correct_indices)
 
     results = []
     for i, q in enumerate(quiz_data):
-        user_answer = req.answers[i] if i < len(req.answers) else ""
-        correct = q.get("antwort", "")
-        # Simple comparison (case insensitive, trimmed)
-        is_correct = user_answer.strip().lower() == correct.strip().lower()
-        if is_correct:
-            score += 1
+        is_correct = i in req.correct_indices
         results.append({
             "frage": q["frage"],
-            "user_answer": user_answer,
-            "correct_answer": correct,
+            "correct_answer": q.get("antwort", ""),
             "is_correct": is_correct,
         })
 
