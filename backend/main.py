@@ -182,7 +182,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
 
     add_activity(db, user, "register", "Account erstellt", xp=10)
 
-    token = create_access_token({"sub": user.id})
+    token = create_access_token({"sub": str(user.id)})
     return TokenResponse(
         access_token=token,
         user={"id": user.id, "email": user.email, "username": user.username, "xp": user.xp},
@@ -205,7 +205,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     xp = 1 if not login_today else 0
     add_activity(db, user, "login", "Angemeldet", xp=xp)
 
-    token = create_access_token({"sub": user.id})
+    token = create_access_token({"sub": str(user.id)})
     return TokenResponse(
         access_token=token,
         user={"id": user.id, "email": user.email, "username": user.username, "xp": user.xp},
